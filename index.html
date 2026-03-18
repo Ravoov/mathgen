@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Problem Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f14;--surface:#161920;--surface2:#1e2230;--border:#2a2f3f;--accent:#4f9eff;--accent2:#7c5cfc;--green:#3ecf8e;--red:#ff6b6b;--amber:#ffb347;--text:#e8eaf0;--muted:#7a8099;--faint:#3a3f52;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,158,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,158,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;}
+
+header{padding:18px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(13,15,20,0.96);backdrop-filter:blur(14px);z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;}
+.logo span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.score-pill{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:6px 16px;font-family:'DM Mono',monospace;font-size:12px;}
+.score-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+.regen-btn{padding:6px 16px;border-radius:100px;border:1px solid var(--accent);background:rgba(79,158,255,0.1);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.regen-btn:hover{background:rgba(79,158,255,0.22);}
+
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 32px;border-bottom:1px solid var(--border);}
+.stat-c{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;text-align:center;}
+.stat-v{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;}
+.stat-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;}
+
+.controls{padding:12px 32px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.ctrl-label{font-size:12px;color:var(--muted);margin-right:2px;}
+.pill-btn{padding:5px 13px;border-radius:100px;border:1px solid var(--border);background:transparent;font-size:12px;cursor:pointer;transition:all 0.14s;font-family:'DM Mono',monospace;color:var(--muted);}
+.pill-btn:hover{border-color:var(--faint);color:var(--text);}
+.pill-btn.ae{background:rgba(62,207,142,0.12);border-color:var(--green);color:var(--green);}
+.pill-btn.am{background:rgba(255,179,71,0.1);border-color:var(--amber);color:var(--amber);}
+.pill-btn.ah{background:rgba(255,107,107,0.1);border-color:var(--red);color:var(--red);}
+.pill-btn.ap{background:rgba(79,158,255,0.12);border-color:var(--accent);color:var(--accent);}
+.ctrl-sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+
+main{max-width:1100px;margin:0 auto;padding:28px 24px 160px;}
+.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:26px;}
+
+.topic-section{margin-bottom:36px;}
+.topic-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.topic-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.topic-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;letter-spacing:-0.3px;}
+.topic-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+.topic-score-pill{margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;padding:3px 11px;border-radius:100px;border:1px solid var(--border);color:var(--muted);white-space:nowrap;}
+
+.problems-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px;}
+.prob-card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:16px 18px;transition:border-color 0.2s;}
+.prob-card:focus-within{border-color:rgba(79,158,255,0.5);}
+.prob-card.sc{border-color:rgba(62,207,142,0.4);background:rgba(62,207,142,0.03);}
+.prob-card.sw{border-color:rgba(255,107,107,0.3);}
+.prob-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.prob-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.07em;}
+.diff-dot{width:7px;height:7px;border-radius:50%;}
+.prob-expr{font-family:'DM Mono',monospace;font-size:14px;color:var(--text);line-height:1.55;margin-bottom:11px;min-height:32px;}
+.prob-input-row{display:flex;gap:7px;}
+.prob-input{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;min-width:0;}
+.prob-input:focus{border-color:var(--accent);}
+.prob-input.ci{border-color:var(--green);background:rgba(62,207,142,0.06);}
+.prob-input.wi{border-color:var(--red);background:rgba(255,107,107,0.06);}
+.check-btn{padding:8px 13px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.14s;}
+.check-btn:hover{background:#3d8ef0;}
+.prob-feedback{font-size:12px;margin-top:8px;padding:6px 10px;border-radius:8px;display:none;line-height:1.4;}
+.pf-ok{background:rgba(62,207,142,0.12);border:1px solid rgba(62,207,142,0.25);color:var(--green);display:block;}
+.pf-no{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);color:var(--red);display:block;}
+.pf-hint{background:rgba(255,179,71,0.08);border:1px solid rgba(255,179,71,0.2);color:var(--amber);display:block;}
+.prob-actions{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.micro-btn{padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;font-size:11px;color:var(--muted);cursor:pointer;transition:all 0.13s;}
+.micro-btn:hover{color:var(--text);border-color:var(--faint);}
+.steps-box{margin-top:10px;background:var(--surface2);border-radius:9px;padding:11px 13px;display:none;}
+.steps-box.open{display:block;}
+.step-row{display:flex;gap:9px;margin-bottom:7px;font-size:12px;color:var(--muted);line-height:1.5;}
+.step-n{font-family:'DM Mono',monospace;font-size:10px;background:var(--faint);border-radius:5px;padding:2px 6px;color:var(--accent);flex-shrink:0;margin-top:1px;height:fit-content;}
+
+/* ── Math Keyboard ── */
+.math-kb{position:fixed;bottom:0;left:0;right:0;background:rgba(18,21,28,0.98);backdrop-filter:blur(18px);border-top:1px solid var(--border);z-index:300;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);max-height:60vh;overflow-y:auto;}
+.math-kb.open{transform:translateY(0);}
+.kb-header{display:flex;align-items:center;gap:12px;padding:10px 20px 6px;border-bottom:1px solid var(--border);}
+.kb-title{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+.kb-target{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.kb-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;}
+.kb-close:hover{color:var(--text);}
+.kb-tabs{display:flex;padding:0 16px;border-bottom:1px solid var(--border);gap:0;overflow-x:auto;}
+.kb-tab{padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;transition:all 0.14s;white-space:nowrap;}
+.kb-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.kb-body{padding:12px 16px 16px;}
+.kb-page{display:none;flex-wrap:wrap;gap:7px;}
+.kb-page.active{display:flex;}
+.kb-key{padding:9px 12px;min-width:50px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:15px;cursor:pointer;transition:all 0.11s;text-align:center;line-height:1;user-select:none;}
+.kb-key:hover{border-color:var(--accent);color:var(--accent);background:rgba(79,158,255,0.09);}
+.kb-key:active{transform:scale(0.91);}
+.kb-key.wide{min-width:90px;font-size:13px;}
+.kb-key.accent-key{border-color:rgba(124,92,252,0.35);color:var(--accent2);}
+.kb-key.accent-key:hover{border-color:var(--accent2);background:rgba(124,92,252,0.1);}
+.kb-key.danger-key{border-color:rgba(255,107,107,0.3);color:var(--red);}
+.kb-key.danger-key:hover{border-color:var(--red);background:rgba(255,107,107,0.1);}
+
+.kb-section-label{width:100%;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;margin-bottom:2px;}
+
+.kb-toggle{position:fixed;bottom:18px;right:20px;width:48px;height:48px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:299;box-shadow:0 4px 18px rgba(79,158,255,0.35);transition:all 0.2s;display:flex;align-items:center;justify-content:center;}
+.kb-toggle:hover{background:#3d8ef0;transform:scale(1.06);}
+.kb-toggle.open{background:var(--surface2);color:var(--muted);border:1px solid var(--border);box-shadow:none;}
+
+@media(max-width:640px){
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  header,main,.controls,.stats-bar{padding-left:16px;padding-right:16px;}
+  .problems-grid{grid-template-columns:1fr;}
+  .page-title{font-size:20px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="logo">math<span>.</span>gen</div>
+  <div class="header-right">
+    <button class="regen-btn" onclick="regenAll()">↺ New Set</button>
+    <div class="score-pill"><div class="dot"></div><span id="hdr-score">0 correct</span></div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-c"><div class="stat-v" id="s-correct">0</div><div class="stat-l">Correct</div></div>
+  <div class="stat-c"><div class="stat-v" id="s-attempted">0</div><div class="stat-l">Attempted</div></div>
+  <div class="stat-c"><div class="stat-v" id="s-streak">0</div><div class="stat-l">Streak 🔥</div></div>
+  <div class="stat-c"><div class="stat-v" id="s-pct">—</div><div class="stat-l">Accuracy</div></div>
+</div>
+
+<div class="controls">
+  <span class="ctrl-label">Difficulty:</span>
+  <button class="pill-btn ae" id="d-easy" onclick="setDiff('easy')">Easy</button>
+  <button class="pill-btn" id="d-medium" onclick="setDiff('medium')">Medium</button>
+  <button class="pill-btn" id="d-hard" onclick="setDiff('hard')">Hard</button>
+  <div class="ctrl-sep"></div>
+  <span class="ctrl-label">Per topic:</span>
+  <button class="pill-btn ap" id="p3" onclick="setCount(3)">3</button>
+  <button class="pill-btn" id="p5" onclick="setCount(5)">5</button>
+  <button class="pill-btn" id="p8" onclick="setCount(8)">8</button>
+</div>
+
+<main id="main-content">
+  <div class="page-title">Today's Worksheet</div>
+  <div class="page-sub">All 7 topics — auto-generated every load. Click any answer field to activate the math keyboard ⌨</div>
+  <div id="all-sections"></div>
+</main>
+
+</div>
+
+<!-- Math Keyboard -->
+<div class="math-kb" id="math-kb">
+  <div class="kb-header">
+    <span class="kb-title">⌨ Math Keyboard</span>
+    <span class="kb-target" id="kb-target-label">Focus a problem field to begin</span>
+    <button class="kb-close" onclick="closeKb()">✕</button>
+  </div>
+  <div class="kb-tabs">
+    <button class="kb-tab active" onclick="switchKbTab('radicals',this)">Roots &amp; Powers</button>
+    <button class="kb-tab" onclick="switchKbTab('fractions',this)">Fractions</button>
+    <button class="kb-tab" onclick="switchKbTab('compare',this)">Compare / Equal</button>
+    <button class="kb-tab" onclick="switchKbTab('geometry',this)">Geometry</button>
+    <button class="kb-tab" onclick="switchKbTab('numbers',this)">Numbers</button>
+    <button class="kb-tab" onclick="switchKbTab('edit',this)">Edit</button>
+  </div>
+  <div class="kb-body">
+
+    <div class="kb-page active" id="kb-radicals">
+      <div class="kb-section-label">Square &amp; cube roots</div>
+      <button class="kb-key wide" onclick="ins('√')">√ square root</button>
+      <button class="kb-key wide" onclick="ins('∛')">∛ cube root</button>
+      <button class="kb-key wide" onclick="ins('∜')">∜ 4th root</button>
+      <button class="kb-key wide" onclick="ins('√()')">√(  ) template</button>
+      <div class="kb-section-label">Powers / exponents</div>
+      <button class="kb-key accent-key" onclick="ins('²')">x² squared</button>
+      <button class="kb-key accent-key" onclick="ins('³')">x³ cubed</button>
+      <button class="kb-key accent-key" onclick="ins('⁴')">x⁴</button>
+      <button class="kb-key accent-key" onclick="ins('⁵')">x⁵</button>
+      <button class="kb-key accent-key" onclick="ins('⁶')">x⁶</button>
+      <button class="kb-key accent-key" onclick="ins('⁷')">x⁷</button>
+      <button class="kb-key accent-key" onclick="ins('⁸')">x⁸</button>
+      <button class="kb-key accent-key" onclick="ins('ⁿ')">xⁿ</button>
+      <button class="kb-key accent-key" onclick="ins('^')">^ caret</button>
+      <div class="kb-section-label">Constants</div>
+      <button class="kb-key" onclick="ins('π')">π pi</button>
+      <button class="kb-key" onclick="ins('e')">e</button>
+      <button class="kb-key" onclick="ins('∞')">∞ inf</button>
+    </div>
+
+    <div class="kb-page" id="kb-fractions">
+      <div class="kb-section-label">Type fractions with /</div>
+      <button class="kb-key wide" onclick="ins('/')">/ slash (a/b)</button>
+      <div class="kb-section-label">Common fractions</div>
+      <button class="kb-key" onclick="ins('1/2')">1/2</button>
+      <button class="kb-key" onclick="ins('1/3')">1/3</button>
+      <button class="kb-key" onclick="ins('2/3')">2/3</button>
+      <button class="kb-key" onclick="ins('1/4')">1/4</button>
+      <button class="kb-key" onclick="ins('3/4')">3/4</button>
+      <button class="kb-key" onclick="ins('1/5')">1/5</button>
+      <button class="kb-key" onclick="ins('2/5')">2/5</button>
+      <button class="kb-key" onclick="ins('3/5')">3/5</button>
+      <button class="kb-key" onclick="ins('4/5')">4/5</button>
+      <button class="kb-key" onclick="ins('1/6')">1/6</button>
+      <button class="kb-key" onclick="ins('5/6')">5/6</button>
+      <button class="kb-key" onclick="ins('1/7')">1/7</button>
+      <button class="kb-key" onclick="ins('1/8')">1/8</button>
+      <button class="kb-key" onclick="ins('3/8')">3/8</button>
+      <button class="kb-key" onclick="ins('5/8')">5/8</button>
+      <button class="kb-key" onclick="ins('7/8')">7/8</button>
+      <div class="kb-section-label">Unicode fraction glyphs</div>
+      <button class="kb-key" onclick="ins('½')">½</button>
+      <button class="kb-key" onclick="ins('⅓')">⅓</button>
+      <button class="kb-key" onclick="ins('⅔')">⅔</button>
+      <button class="kb-key" onclick="ins('¼')">¼</button>
+      <button class="kb-key" onclick="ins('¾')">¾</button>
+      <button class="kb-key" onclick="ins('⅕')">⅕</button>
+      <button class="kb-key" onclick="ins('⅖')">⅖</button>
+      <button class="kb-key" onclick="ins('⅗')">⅗</button>
+      <button class="kb-key" onclick="ins('⅘')">⅘</button>
+      <button class="kb-key" onclick="ins('⅙')">⅙</button>
+      <button class="kb-key" onclick="ins('⅚')">⅚</button>
+      <button class="kb-key" onclick="ins('⅛')">⅛</button>
+      <button class="kb-key" onclick="ins('⅜')">⅜</button>
+      <button class="kb-key" onclick="ins('⅝')">⅝</button>
+      <button class="kb-key" onclick="ins('⅞')">⅞</button>
+    </div>
+
+    <div class="kb-page" id="kb-compare">
+      <div class="kb-section-label">Equality &amp; inequality</div>
+      <button class="kb-key" onclick="ins('=')">= equals</button>
+      <button class="kb-key" onclick="ins('≠')">≠ not equal</button>
+      <button class="kb-key" onclick="ins('≈')">≈ approx</button>
+      <button class="kb-key" onclick="ins('≡')">≡ identical</button>
+      <button class="kb-key" onclick="ins('≜')">≜ defined as</button>
+      <div class="kb-section-label">Order</div>
+      <button class="kb-key" onclick="ins('<')">&lt; less</button>
+      <button class="kb-key" onclick="ins('>')">&gt; greater</button>
+      <button class="kb-key" onclick="ins('≤')">≤ less/eq</button>
+      <button class="kb-key" onclick="ins('≥')">≥ greater/eq</button>
+      <button class="kb-key" onclick="ins('≪')">≪ much less</button>
+      <button class="kb-key" onclick="ins('≫')">≫ much more</button>
+      <div class="kb-section-label">Arithmetic operators</div>
+      <button class="kb-key" onclick="ins('+')">+</button>
+      <button class="kb-key" onclick="ins('-')">−</button>
+      <button class="kb-key" onclick="ins('×')">× multiply</button>
+      <button class="kb-key" onclick="ins('÷')">÷ divide</button>
+      <button class="kb-key" onclick="ins('±')">± plus-minus</button>
+      <button class="kb-key" onclick="ins('∓')">∓ minus-plus</button>
+      <button class="kb-key" onclick="ins('%')">% percent</button>
+      <button class="kb-key" onclick="ins('∝')">∝ proportional</button>
+      <button class="kb-key" onclick="ins('∴')">∴ therefore</button>
+      <button class="kb-key" onclick="ins('∵')">∵ because</button>
+      <div class="kb-section-label">Ratios</div>
+      <button class="kb-key" onclick="ins(':')">: colon</button>
+      <button class="kb-key wide" onclick="ins(' : ')">a : b ratio</button>
+    </div>
+
+    <div class="kb-page" id="kb-geometry">
+      <div class="kb-section-label">Shapes &amp; angles</div>
+      <button class="kb-key" onclick="ins('△')">△ triangle</button>
+      <button class="kb-key" onclick="ins('□')">□ square</button>
+      <button class="kb-key" onclick="ins('○')">○ circle</button>
+      <button class="kb-key" onclick="ins('∠')">∠ angle</button>
+      <button class="kb-key" onclick="ins('⊥')">⊥ perpendicular</button>
+      <button class="kb-key" onclick="ins('∥')">∥ parallel</button>
+      <button class="kb-key" onclick="ins('°')">° degree</button>
+      <button class="kb-key" onclick="ins('′')">′ arcmin</button>
+      <button class="kb-key" onclick="ins('″')">″ arcsec</button>
+      <div class="kb-section-label">Similarity &amp; congruence</div>
+      <button class="kb-key" onclick="ins('~')">~ similar</button>
+      <button class="kb-key" onclick="ins('≅')">≅ congruent</button>
+      <button class="kb-key wide" onclick="ins('△ABC ~ △DEF')">△ABC ~ △DEF</button>
+      <div class="kb-section-label">Greek letters (common)</div>
+      <button class="kb-key" onclick="ins('α')">α alpha</button>
+      <button class="kb-key" onclick="ins('β')">β beta</button>
+      <button class="kb-key" onclick="ins('γ')">γ gamma</button>
+      <button class="kb-key" onclick="ins('θ')">θ theta</button>
+      <button class="kb-key" onclick="ins('φ')">φ phi</button>
+      <button class="kb-key" onclick="ins('λ')">λ lambda</button>
+      <button class="kb-key" onclick="ins('μ')">μ mu</button>
+      <button class="kb-key" onclick="ins('σ')">σ sigma</button>
+    </div>
+
+    <div class="kb-page" id="kb-numbers">
+      <div class="kb-section-label">Numpad</div>
+      <button class="kb-key" onclick="ins('7')">7</button>
+      <button class="kb-key" onclick="ins('8')">8</button>
+      <button class="kb-key" onclick="ins('9')">9</button>
+      <button class="kb-key" onclick="ins('/')">÷</button>
+      <button class="kb-key" onclick="ins('4')">4</button>
+      <button class="kb-key" onclick="ins('5')">5</button>
+      <button class="kb-key" onclick="ins('6')">6</button>
+      <button class="kb-key" onclick="ins('×')">×</button>
+      <button class="kb-key" onclick="ins('1')">1</button>
+      <button class="kb-key" onclick="ins('2')">2</button>
+      <button class="kb-key" onclick="ins('3')">3</button>
+      <button class="kb-key" onclick="ins('-')">−</button>
+      <button class="kb-key" onclick="ins('0')">0</button>
+      <button class="kb-key" onclick="ins('.')">.</button>
+      <button class="kb-key" onclick="ins('x')">x</button>
+      <button class="kb-key" onclick="ins('+')">+</button>
+      <div class="kb-section-label">Brackets</div>
+      <button class="kb-key" onclick="ins('(')">(</button>
+      <button class="kb-key" onclick="ins(')')">)</button>
+      <button class="kb-key" onclick="ins('[')">[ </button>
+      <button class="kb-key" onclick="ins(']')"> ]</button>
+    </div>
+
+    <div class="kb-page" id="kb-edit">
+      <div class="kb-section-label">Edit answer field</div>
+      <button class="kb-key wide danger-key" onclick="backspace()">⌫ Backspace</button>
+      <button class="kb-key wide danger-key" onclick="clearInput()">✕ Clear all</button>
+      <div class="kb-section-label">Submit</div>
+      <button class="kb-key wide" style="background:rgba(79,158,255,0.15);border-color:var(--accent);color:var(--accent);" onclick="submitActive()">↵ Check answer</button>
+      <div class="kb-section-label">Subscripts</div>
+      <button class="kb-key accent-key" onclick="ins('₀')">₀</button>
+      <button class="kb-key accent-key" onclick="ins('₁')">₁</button>
+      <button class="kb-key accent-key" onclick="ins('₂')">₂</button>
+      <button class="kb-key accent-key" onclick="ins('₃')">₃</button>
+      <button class="kb-key accent-key" onclick="ins('₄')">₄</button>
+      <button class="kb-key accent-key" onclick="ins('₅')">₅</button>
+      <button class="kb-key accent-key" onclick="ins('₆')">₆</button>
+      <button class="kb-key accent-key" onclick="ins('₇')">₇</button>
+      <button class="kb-key accent-key" onclick="ins('₈')">₈</button>
+      <button class="kb-key accent-key" onclick="ins('₉')">₉</button>
+      <div class="kb-section-label">Superscripts</div>
+      <button class="kb-key accent-key" onclick="ins('⁰')">⁰</button>
+      <button class="kb-key accent-key" onclick="ins('¹')">¹</button>
+      <button class="kb-key accent-key" onclick="ins('²')">²</button>
+      <button class="kb-key accent-key" onclick="ins('³')">³</button>
+      <button class="kb-key accent-key" onclick="ins('⁴')">⁴</button>
+      <button class="kb-key accent-key" onclick="ins('⁵')">⁵</button>
+      <button class="kb-key accent-key" onclick="ins('⁶')">⁶</button>
+      <button class="kb-key accent-key" onclick="ins('⁷')">⁷</button>
+      <button class="kb-key accent-key" onclick="ins('⁸')">⁸</button>
+      <button class="kb-key accent-key" onclick="ins('⁹')">⁹</button>
+    </div>
+
+  </div>
+</div>
+
+<button class="kb-toggle" id="kb-toggle-btn" onclick="toggleKb()" title="Toggle math keyboard">⌨</button>
+
+<script>
+// ── Config ──
+const TOPICS=[
+  {id:'radicals',name:'Simplifying Radicals',icon:'🔢',desc:'Simplify each radical expression to its simplest form.',color:'#4f9eff'},
+  {id:'rationalize',name:'Rationalization',icon:'➗',desc:'Rationalize the denominator of each expression.',color:'#7c5cfc'},
+  {id:'ratios',name:'Ratios',icon:'⚖️',desc:'Simplify ratios or find the missing value.',color:'#3ecf8e'},
+  {id:'solve',name:'Solve for Variable',icon:'🔍',desc:'Solve each equation or proportion for the unknown variable.',color:'#ffb347'},
+  {id:'geomean',name:'Geometric Means',icon:'📐',desc:'Find the geometric mean between each pair of numbers.',color:'#ff6b6b'},
+  {id:'scale',name:'Scale Factor',icon:'📏',desc:'Find scale factors or compute missing measurements.',color:'#4f9eff'},
+  {id:'similar',name:'Similar Triangles',icon:'△',desc:'Use similar triangle properties to find missing sides.',color:'#3ecf8e'},
+];
+
+let difficulty='easy', probCount=3;
+let correct=0, attempted=0, streak=0;
+let allProblems={};
+let activeInput=null, activeTopicId=null, activeIdx=null;
+
+// ── Helpers ──
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+const gcd=(a,b)=>b===0?a:gcd(b,a%b);
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ── Generators ──
+function genRadicals(){
+  const pools={
+    easy:[[4,2],[4,3],[4,5],[9,2],[9,3],[9,5],[16,2],[16,3],[25,2],[25,3]],
+    medium:[[4,6],[9,6],[16,5],[16,7],[25,6],[36,2],[36,3],[36,5],[49,2],[64,2],[64,3],[100,2]],
+    hard:[[36,7],[49,5],[49,6],[64,5],[64,7],[100,7],[121,2],[121,3],[144,5],[81,5]]
+  };
+  const [coef,rem]=pick(pools[difficulty]);
+  const inside=coef*coef*rem;
+  const answers=rem===1?[`${coef}`]:[`${coef}√${rem}`];
+  return {
+    expr:`Simplify:  √${inside}`,answers,
+    hint:`Factor ${inside} = ${coef*coef} × ${rem}. Pull out √${coef*coef} = ${coef}.`,
+    steps:[`Find largest perfect-square factor of ${inside}`,`${inside} = ${coef*coef} × ${rem}`,`√${inside} = √${coef*coef} × √${rem}`,`= ${coef} × √${rem} = ${coef}√${rem}${rem===1?` = ${coef}`:''}  ✓`]
+  };
+}
+
+function genRationalize(){
+  const pools={
+    easy:[[1,2],[1,3],[1,5],[2,3],[2,5],[3,2],[3,5],[5,2],[5,3],[4,3]],
+    medium:[[3,7],[4,5],[6,5],[7,2],[7,3],[8,3],[9,5],[10,3],[12,5],[15,2]],
+    hard:[[5,6],[7,5],[11,2],[11,3],[13,3],[9,7],[4,11],[8,7],[15,7],[6,11]]
+  };
+  const [num,rad]=pick(pools[difficulty]);
+  const g=gcd(num,rad);
+  const topS=num/g,botS=rad/g;
+  const ans=botS===1?`${topS}√${rad}`:`${topS}√${rad}/${botS}`;
+  return {
+    expr:`Rationalize:  ${num} / √${rad}`,
+    answers:[ans,`${num}√${rad}/${rad}`],
+    hint:`Multiply top & bottom by √${rad}. You get (${num}√${rad})/${rad}. Simplify by dividing by ${g}.`,
+    steps:[`Multiply numerator & denominator by √${rad}`,`= (${num}×√${rad}) / (√${rad}×√${rad})`,`= ${num}√${rad} / ${rad}`,g>1?`Divide top & bottom by ${g}: = ${ans}  ✓`:`= ${ans}  ✓`]
+  };
+}
+
+function genRatios(){
+  if(difficulty==='easy'){
+    const a=rand(2,9),f=pick([2,3,4,5]),b=a*f;
+    const g=gcd(a,b),sa=a/g,sb=b/g;
+    return {
+      expr:`Simplify the ratio:  ${a} : ${b}`,
+      answers:[`${sa}:${sb}`,`${sa} : ${sb}`,`${sa} to ${sb}`],
+      hint:`GCF(${a}, ${b}) = ${g}. Divide both by ${g}.`,
+      steps:[`GCF(${a}, ${b}) = ${g}`,`${a} ÷ ${g} = ${sa}`,`${b} ÷ ${g} = ${sb}`,`Simplified: ${sa} : ${sb}  ✓`]
+    };
+  } else {
+    const a=rand(2,8),b=rand(2,8),mult=rand(3,7),x=a*mult;
+    return {
+      expr:`${a} : ${b} = x : ${b*mult}   →  find x`,
+      answers:[`${x}`,`x=${x}`,`x = ${x}`],
+      hint:`Cross multiply: ${b}x = ${a} × ${b*mult}. Then divide by ${b}.`,
+      steps:[`Proportion: ${a}/${b} = x/${b*mult}`,`Cross multiply: ${b}x = ${a*b*mult}`,`x = ${a*b*mult} ÷ ${b} = ${x}  ✓`]
+    };
+  }
+}
+
+function genSolve(){
+  const fns={
+    easy:()=>{
+      let a=rand(2,9),b=rand(2,9),c=rand(2,9),d=a*c/b;
+      if(d!==Math.floor(d)||d<=0) return fns.easy();
+      return {
+        expr:`Solve:  ${a}/${b} = x/${c}`,
+        answers:[`${d}`,`x=${d}`,`x = ${d}`],
+        hint:`Cross multiply: ${b}x = ${a}×${c} = ${a*c}. Then x = ${a*c}/${b}.`,
+        steps:[`Cross multiply: ${b}x = ${a} × ${c} = ${a*c}`,`x = ${a*c} ÷ ${b} = ${d}  ✓`]
+      };
+    },
+    medium:()=>{
+      const x0=rand(2,12),add=rand(1,8),mul=rand(2,6);
+      return {
+        expr:`Solve:  (x + ${add}) / ${mul} = ${(x0+add)/mul}`,
+        answers:[`${x0}`,`x=${x0}`,`x = ${x0}`],
+        hint:`Multiply both sides by ${mul}: x + ${add} = ${x0+add}. Subtract ${add}.`,
+        steps:[`Multiply both sides by ${mul}`,`x + ${add} = ${x0+add}`,`x = ${x0+add} - ${add} = ${x0}  ✓`]
+      };
+    },
+    hard:()=>{
+      const a=rand(2,7),b=rand(2,6),c=rand(2,5);
+      const x=a*b;
+      return {
+        expr:`Solve:  x/${b} + ${c} = ${a+c}`,
+        answers:[`${x}`,`x=${x}`,`x = ${x}`],
+        hint:`Subtract ${c} from both sides: x/${b} = ${a}. Then multiply by ${b}.`,
+        steps:[`Subtract ${c}: x/${b} = ${a}`,`Multiply by ${b}: x = ${a} × ${b} = ${x}  ✓`]
+      };
+    }
+  };
+  return (fns[difficulty]||fns.easy)();
+}
+
+function genGeoMean(){
+  const pools={
+    easy:[[1,4],[1,9],[4,9],[4,16],[4,25],[9,16],[9,25],[16,25],[4,36],[9,36]],
+    medium:[[2,8],[3,12],[2,18],[3,27],[5,20],[5,45],[2,32],[3,48],[4,100],[6,24]],
+    hard:[[2,98],[3,75],[5,125],[7,63],[6,54],[8,50],[3,108],[4,144],[5,180],[6,96]]
+  };
+  const [a,b]=pick(pools[difficulty]);
+  const gm=Math.round(Math.sqrt(a*b));
+  return {
+    expr:`Geometric mean of  ${a}  and  ${b}`,
+    answers:[`${gm}`],
+    hint:`GM = √(a × b) = √(${a} × ${b}) = √${a*b}.`,
+    steps:[`Formula: GM = √(a × b)`,`= √(${a} × ${b}) = √${a*b}`,`= ${gm}  ✓`]
+  };
+}
+
+function genScale(){
+  const pools={easy:[2,3,4,5],medium:[1.5,2.5,3,4,0.5],hard:[1.5,2.5,3.5,0.25,0.75,4.5]};
+  const sf=pick(pools[difficulty]),orig=pick([3,4,5,6,7,8,9,10,12,15]);
+  const ns=+(orig*sf).toFixed(2),t=pick(['new','sf','orig']);
+  if(t==='new') return{expr:`SF = ${sf}, original = ${orig}. New side = ?`,answers:[`${ns}`,`${ns} units`],hint:`New = original × SF = ${orig} × ${sf}.`,steps:[`New = original × SF`,`= ${orig} × ${sf} = ${ns}  ✓`]};
+  if(t==='sf') return{expr:`Original = ${orig}, new side = ${ns}. Scale factor = ?`,answers:[`${sf}`],hint:`SF = new ÷ original = ${ns} ÷ ${orig}.`,steps:[`SF = new ÷ original`,`= ${ns} ÷ ${orig} = ${sf}  ✓`]};
+  return{expr:`SF = ${sf}, new side = ${ns}. Original = ?`,answers:[`${orig}`,`${orig} units`],hint:`Original = new ÷ SF = ${ns} ÷ ${sf}.`,steps:[`Original = new ÷ SF`,`= ${ns} ÷ ${sf} = ${orig}  ✓`]};
+}
+
+function genSimilar(){
+  const labels=[['AB','DE'],['PQ','XY'],['MN','RS'],['AC','DF'],['JK','LM']];
+  const thirds=['BC','QR','NO','KL','AC'];
+  const [p1,p2]=pick(labels),s3=pick(thirds);
+  const a=rand(2,8),mult=pick([2,3,4,5]),b=rand(3,10);
+  return{
+    expr:`△s ~.  ${p1}=${a}, ${p2}=${a*mult}, ${s3}=${b}. Find missing side.`,
+    answers:[`${b*mult}`,`${b*mult} units`],
+    hint:`SF = ${p2}/${p1} = ${a*mult}/${a} = ${mult}. Multiply ${s3} by ${mult}.`,
+    steps:[`SF = ${p2} ÷ ${p1} = ${a*mult} ÷ ${a} = ${mult}`,`Missing side = ${s3} × ${mult}`,`= ${b} × ${mult} = ${b*mult}  ✓`]
+  };
+}
+
+const GENS={radicals:genRadicals,rationalize:genRationalize,ratios:genRatios,solve:genSolve,geomean:genGeoMean,scale:genScale,similar:genSimilar};
+
+// ── Build UI ──
+function regenAll(){
+  correct=0;attempted=0;streak=0;allProblems={};
+  updateStats();
+  buildAll();
+}
+
+function buildAll(){
+  const c=document.getElementById('all-sections');
+  c.innerHTML='';
+  TOPICS.forEach(t=>{
+    const probs=[];
+    for(let i=0;i<probCount;i++){
+      let p;try{p=GENS[t.id]();}catch(e){p=GENS[t.id]();}
+      probs.push({problem:p,solved:false,correct:false});
+    }
+    allProblems[t.id]=probs;
+    c.appendChild(buildSection(t,probs));
+  });
+}
+
+function buildSection(t,probs){
+  const sec=document.createElement('div');
+  sec.className='topic-section';
+  sec.id='sec-'+t.id;
+  sec.innerHTML=`<div class="topic-header"><div class="topic-icon" style="background:${t.color}22;color:${t.color};">${t.icon}</div><div><div class="topic-name">${t.name}</div><div class="topic-desc">${t.desc}</div></div><div class="topic-score-pill" id="tscore-${t.id}">0 / ${probCount}</div></div><div class="problems-grid" id="grid-${t.id}"></div>`;
+  const grid=sec.querySelector('#grid-'+t.id);
+  probs.forEach((_,i)=>grid.appendChild(buildCard(t.id,i,probs[i].problem)));
+  return sec;
+}
+
+function buildCard(tid,idx,p){
+  const card=document.createElement('div');
+  card.className='prob-card';
+  card.id=`card-${tid}-${idx}`;
+  const cid=`inp-${tid}-${idx}`;
+  const dotColor=difficulty==='easy'?'var(--green)':difficulty==='medium'?'var(--amber)':'var(--red)';
+  card.innerHTML=`
+    <div class="prob-meta"><span class="prob-num">${tid.toUpperCase()} · #${idx+1}</span><span class="diff-dot" style="background:${dotColor}"></span></div>
+    <div class="prob-expr">${esc(p.expr)}</div>
+    <div class="prob-input-row">
+      <input class="prob-input" id="${cid}" placeholder="Your answer…" autocomplete="off" />
+      <button class="check-btn" onclick="checkCard('${tid}',${idx})">✓</button>
+    </div>
+    <div class="prob-feedback" id="fb-${tid}-${idx}"></div>
+    <div class="prob-actions">
+      <button class="micro-btn" onclick="showHint('${tid}',${idx})">💡 Hint</button>
+      <button class="micro-btn" onclick="toggleSteps('${tid}',${idx})">📐 Steps</button>
+      <button class="micro-btn" onclick="regenCard('${tid}',${idx})">↺ New</button>
+    </div>
+    <div class="steps-box" id="steps-${tid}-${idx}"></div>
+  `;
+  const inp=card.querySelector('#'+cid);
+  inp.addEventListener('focus',()=>{activeInput=inp;activeTopicId=tid;activeIdx=idx;document.getElementById('kb-target-label').textContent=`${tid} · problem ${idx+1}`;});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkCard(tid,idx);});
+  return card;
+}
+
+// ── Check ──
+function normalize(s){
+  return s.trim().replace(/\s+/g,'').toLowerCase()
+    .replace(/×/g,'*').replace(/÷/g,'/')
+    .replace(/√/g,'sqrt').replace(/∛/g,'cbrt')
+    .replace(/x=/,'').replace(/units/g,'').trim();
+}
+
+function checkCard(tid,idx){
+  const entry=allProblems[tid][idx];
+  if(entry.solved)return;
+  const inp=document.getElementById(`inp-${tid}-${idx}`);
+  const fb=document.getElementById(`fb-${tid}-${idx}`);
+  const card=document.getElementById(`card-${tid}-${idx}`);
+  const val=normalize(inp.value);
+  if(!val)return;
+  const ok=entry.problem.answers.some(a=>normalize(a)===val);
+  attempted++;
+  if(ok){
+    entry.solved=true;entry.correct=true;
+    correct++;streak++;
+    inp.className='prob-input ci';inp.disabled=true;
+    fb.className='prob-feedback pf-ok';
+    fb.textContent='✓ Correct!'+(streak>2?' 🔥 '+streak+' streak!':' Great job!');
+    fb.style.display='block';
+    card.className='prob-card sc';
+  } else {
+    streak=0;
+    inp.className='prob-input wi';
+    fb.className='prob-feedback pf-no';
+    fb.textContent='✗ Not quite — try again, or use the hint.';
+    fb.style.display='block';
+    card.className='prob-card sw';
+  }
+  updateTopicScore(tid);
+  updateStats();
+}
+
+function showHint(tid,idx){
+  const fb=document.getElementById(`fb-${tid}-${idx}`);
+  fb.className='prob-feedback pf-hint';
+  fb.textContent='💡 '+allProblems[tid][idx].problem.hint;
+  fb.style.display='block';
+}
+
+function toggleSteps(tid,idx){
+  const box=document.getElementById(`steps-${tid}-${idx}`);
+  if(box.classList.contains('open')){box.classList.remove('open');return;}
+  const steps=allProblems[tid][idx].problem.steps;
+  box.innerHTML=steps.map((s,i)=>`<div class="step-row"><span class="step-n">${i+1}</span><span>${esc(s)}</span></div>`).join('');
+  box.classList.add('open');
+}
+
+function regenCard(tid,idx){
+  let p;try{p=GENS[tid]();}catch(e){p=GENS[tid]();}
+  allProblems[tid][idx]={problem:p,solved:false,correct:false};
+  const card=document.getElementById(`card-${tid}-${idx}`);
+  card.parentNode.replaceChild(buildCard(tid,idx,p),card);
+}
+
+function updateTopicScore(tid){
+  const c=allProblems[tid].filter(x=>x.correct).length;
+  document.getElementById('tscore-'+tid).textContent=`${c} / ${probCount}`;
+}
+
+function updateStats(){
+  document.getElementById('s-correct').textContent=correct;
+  document.getElementById('s-attempted').textContent=attempted;
+  document.getElementById('s-streak').textContent=streak;
+  const pct=attempted>0?Math.round(correct/attempted*100):null;
+  document.getElementById('s-pct').textContent=pct!==null?pct+'%':'—';
+  document.getElementById('hdr-score').textContent=`${correct} correct`;
+}
+
+// ── Controls ──
+function setDiff(d){
+  difficulty=d;
+  ['easy','medium','hard'].forEach(x=>{
+    const b=document.getElementById('d-'+x);
+    b.className='pill-btn'+(x===d?' a'+x[0]:'');
+  });
+  regenAll();
+}
+
+function setCount(n){
+  probCount=n;
+  [3,5,8].forEach(x=>{
+    document.getElementById('p'+x).className='pill-btn'+(x===n?' ap':'');
+  });
+  regenAll();
+}
+
+// ── Math Keyboard ──
+let kbOpen=false;
+
+function ins(char){
+  if(!activeInput)return;
+  const s=activeInput.selectionStart,e=activeInput.selectionEnd,v=activeInput.value;
+  activeInput.value=v.substring(0,s)+char+v.substring(e);
+  activeInput.selectionStart=activeInput.selectionEnd=s+char.length;
+  activeInput.focus();
+}
+
+function backspace(){
+  if(!activeInput)return;
+  const s=activeInput.selectionStart,e=activeInput.selectionEnd;
+  if(s===e&&s>0){activeInput.value=activeInput.value.substring(0,s-1)+activeInput.value.substring(s);activeInput.selectionStart=activeInput.selectionEnd=s-1;}
+  else{activeInput.value=activeInput.value.substring(0,s)+activeInput.value.substring(e);activeInput.selectionStart=activeInput.selectionEnd=s;}
+  activeInput.focus();
+}
+
+function clearInput(){if(!activeInput)return;activeInput.value='';activeInput.focus();}
+
+function submitActive(){
+  if(activeTopicId!==null&&activeIdx!==null) checkCard(activeTopicId,activeIdx);
+}
+
+function toggleKb(){
+  kbOpen=!kbOpen;
+  document.getElementById('math-kb').classList.toggle('open',kbOpen);
+  const btn=document.getElementById('kb-toggle-btn');
+  btn.classList.toggle('open',kbOpen);
+  btn.textContent=kbOpen?'✕':'⌨';
+}
+
+function closeKb(){
+  kbOpen=false;
+  document.getElementById('math-kb').classList.remove('open');
+  const btn=document.getElementById('kb-toggle-btn');
+  btn.classList.remove('open');
+  btn.textContent='⌨';
+}
+
+function switchKbTab(name,el){
+  document.querySelectorAll('.kb-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.kb-page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('kb-'+name).classList.add('active');
+}
+
+// ── Init ──
+buildAll();
+</script>
+</body>
+</html>
