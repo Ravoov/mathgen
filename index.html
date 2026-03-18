@@ -484,16 +484,150 @@ function genScale(){
 }
 
 function genSimilar(){
-  const labels=[['AB','DE'],['PQ','XY'],['MN','RS'],['AC','DF'],['JK','LM']];
-  const thirds=['BC','QR','NO','KL','AC'];
-  const [p1,p2]=pick(labels),s3=pick(thirds);
-  const a=rand(2,8),mult=pick([2,3,4,5]),b=rand(3,10);
+  // Triangle name pairs: [small vertex labels, large vertex labels]
+  const namePairs=[
+    {s:['A','B','C'], l:['D','E','F']},
+    {s:['P','Q','R'], l:['X','Y','Z']},
+    {s:['M','N','O'], l:['R','S','T']},
+    {s:['J','K','L'], l:['P','Q','R']},
+  ];
+  const np=pick(namePairs);
+  const [sA,sB,sC]=np.s, [lA,lB,lC]=np.l;
+  // Side names: AB, BC, CA for small; DE, EF, FD for large
+  const sSides={AB:`${sA}${sB}`,BC:`${sB}${sC}`,CA:`${sC}${sA}`};
+  const lSides={AB:`${lA}${lB}`,BC:`${lB}${lC}`,CA:`${lC}${lA}`};
+  // Pick which side is the known pair and which is the unknown
+  const knownSide=pick(['AB','BC','CA']);
+  const unknownSide=pick(['AB','BC','CA'].filter(x=>x!==knownSide));
+  const a=rand(2,8), mult=pick([2,3,4,5]), b=rand(3,10);
+  const bigA=a*mult, bigB=b*mult;
+  // Build label map for SVG: side -> value or '?'
+  const sLabels={AB:null,BC:null,CA:null};
+  const lLabels={AB:null,BC:null,CA:null};
+  sLabels[knownSide]=a;
+  lLabels[knownSide]=bigA;
+  sLabels[unknownSide]=b;
+  lLabels[unknownSide]='?';
   return{
-    expr:`△s ~.  ${p1}=${a}, ${p2}=${a*mult}, ${s3}=${b}. Find missing side.`,
-    answers:[`${b*mult}`,`${b*mult} units`],
-    hint:`SF = ${p2}/${p1} = ${a*mult}/${a} = ${mult}. Multiply ${s3} by ${mult}.`,
-    steps:[`SF = ${p2} ÷ ${p1} = ${a*mult} ÷ ${a} = ${mult}`,`Missing side = ${s3} × ${mult}`,`= ${b} × ${mult} = ${b*mult}  ✓`]
+    expr:`△${sA}${sB}${sC} ~ △${lA}${lB}${lC}.  ${sSides[knownSide]}=${a}, ${lSides[knownSide]}=${bigA}, ${sSides[unknownSide]}=${b}.  Find ${lSides[unknownSide]}.`,
+    answers:[`${bigB}`,`${bigB} units`],
+    hint:`Scale factor = ${lSides[knownSide]}/${sSides[knownSide]} = ${bigA}/${a} = ${mult}. Multiply ${sSides[unknownSide]} by ${mult}.`,
+    steps:[`SF = ${lSides[knownSide]} ÷ ${sSides[knownSide]} = ${bigA} ÷ ${a} = ${mult}`,`${lSides[unknownSide]} = ${sSides[unknownSide]} × SF = ${b} × ${mult}`,`= ${bigB}  ✓`],
+    svgData:{
+      sVerts:np.s, lVerts:np.l,
+      sLabels, lLabels, mult,
+      sKnown:a, lKnown:bigA, sUnknown:b, lUnknown:bigB,
+      knownSide, unknownSide,
+      sSideNames:sSides, lSideNames:lSides
+    }
   };
+}
+
+function makeSimilarSVG(d){
+  // Draw two triangles side by side with labeled sides
+  // Small triangle vertices (normalized shape)
+  const shapes=[
+    // shape 0: right-ish triangle
+    {s:[[10,70],[70,70],[10,10]], l:[[90,130],[200,130],[90,20]]},
+    // shape 1: acute triangle
+    {s:[[10,70],[80,70],[40,10]], l:[[90,130],[210,130],[150,20]]},
+    // shape 2: wide triangle
+    {s:[[10,60],[90,60],[50,10]], l:[[90,120],[230,120],[160,20]]},
+  ];
+  const sh=shapes[Math.floor(Math.random()*shapes.length)];
+  const sV=sh.s, lV=sh.l;
+
+  function midpoint(p1,p2){return[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];}
+  function labelOffset(p1,p2,dx,dy){const m=midpoint(p1,p2);return[m[0]+dx,m[1]+dy];}
+
+  // Side offsets for labels (nudge outward)
+  const sOff={AB:[0,12],BC:[-14,0],CA:[12,0]};
+  const lOff={AB:[0,13],BC:[-16,0],CA:[14,0]};
+
+  function triPath(v){return `M${v[0][0]},${v[0][1]} L${v[1][0]},${v[1][1]} L${v[2][0]},${v[2][1]} Z`;}
+
+  function sideVerts(v,side){
+    if(side==='AB') return[v[0],v[1]];
+    if(side==='BC') return[v[1],v[2]];
+    return[v[2],v[0]];
+  }
+
+  function labelText(val){return val===null?'':String(val);}
+
+  const sides=['AB','BC','CA'];
+  let sLabelsSVG='', lLabelsSVG='';
+  sides.forEach(side=>{
+    const sv=sideVerts(sV,side);
+    const lv=sideVerts(lV,side);
+    const sVal=d.sLabels[side];
+    const lVal=d.lLabels[side];
+    const so=sOff[side];
+    const lo=lOff[side];
+    if(sVal!==null){
+      const [mx,my]=labelOffset(sv[0],sv[1],so[0],so[1]);
+      const isUnknown=false;
+      sLabelsSVG+=`<text x="${mx}" y="${my}" text-anchor="middle" font-size="11" fill="#4f9eff" font-family="DM Mono,monospace" font-weight="500">${labelText(sVal)}</text>`;
+    }
+    if(lVal!==null){
+      const [mx,my]=labelOffset(lv[0],lv[1],lo[0],lo[1]);
+      const isQ=lVal==='?';
+      lLabelsSVG+=`<text x="${mx}" y="${my}" text-anchor="middle" font-size="11" fill="${isQ?'#ffb347':'#3ecf8e'}" font-family="DM Mono,monospace" font-weight="500">${labelText(lVal)}</text>`;
+    }
+  });
+
+  // Vertex labels for small triangle
+  const sVOff=[[-10,4],[8,4],[0,-6]];
+  const lVOff=[[-12,4],[10,4],[0,-6]];
+  let sVLabels='', lVLabels='';
+  d.sVerts.forEach((vname,i)=>{
+    sVLabels+=`<text x="${sV[i][0]+sVOff[i][0]}" y="${sV[i][1]+sVOff[i][1]}" font-size="11" fill="#7a8099" font-family="DM Sans,sans-serif">${vname}</text>`;
+  });
+  d.lVerts.forEach((vname,i)=>{
+    lVLabels+=`<text x="${lV[i][0]+lVOff[i][0]}" y="${lV[i][1]+lVOff[i][1]}" font-size="11" fill="#7a8099" font-family="DM Sans,sans-serif">${vname}</text>`;
+  });
+
+  // Shift large triangle right
+  const lShift=100;
+  const lVShifted=lV.map(v=>[v[0]+lShift,v[1]]);
+  const lVOffShifted=lV.map((v,i)=>[v[0]+lShift+lVOff[i][0],v[1]+lVOff[i][1]]);
+
+  function sideVertsShifted(v,side){
+    if(side==='AB') return[v[0],v[1]];
+    if(side==='BC') return[v[1],v[2]];
+    return[v[2],v[0]];
+  }
+
+  // Rebuild large labels with shifted coords
+  let lLabelsSVGShifted='';
+  sides.forEach(side=>{
+    const lv=sideVertsShifted(lVShifted,side);
+    const lVal=d.lLabels[side];
+    const lo=lOff[side];
+    if(lVal!==null){
+      const [mx,my]=labelOffset(lv[0],lv[1],lo[0],lo[1]);
+      const isQ=lVal==='?';
+      lLabelsSVGShifted+=`<text x="${mx}" y="${my}" text-anchor="middle" font-size="11" fill="${isQ?'#ffb347':'#3ecf8e'}" font-family="DM Mono,monospace" font-weight="500">${labelText(lVal)}</text>`;
+    }
+  });
+  let lVLabelsSVGShifted='';
+  d.lVerts.forEach((vname,i)=>{
+    lVLabelsSVGShifted+=`<text x="${lVOffShifted[i][0]}" y="${lVOffShifted[i][1]}" font-size="11" fill="#7a8099" font-family="DM Sans,sans-serif">${vname}</text>`;
+  });
+
+  // Similarity arrow
+  const arrowX=88+lShift/2, arrowY=55;
+
+  return `<svg viewBox="0 0 ${250+lShift} 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:420px;display:block;margin:0 auto;">
+  <path d="${triPath(sV)}" fill="rgba(79,158,255,0.08)" stroke="#4f9eff" stroke-width="1.5" stroke-linejoin="round"/>
+  ${sLabelsSVG}
+  ${sVLabels}
+  <path d="${triPath(lVShifted)}" fill="rgba(62,207,142,0.07)" stroke="#3ecf8e" stroke-width="1.5" stroke-linejoin="round"/>
+  ${lLabelsSVGShifted}
+  ${lVLabelsSVGShifted}
+  <text x="${arrowX}" y="${arrowY}" text-anchor="middle" font-size="16" fill="#7a8099">~</text>
+  <text x="40" y="100" text-anchor="middle" font-size="9" fill="#4f9eff" font-family="DM Sans,sans-serif">smaller</text>
+  <text x="${145+lShift}" y="100" text-anchor="middle" font-size="9" fill="#3ecf8e" font-family="DM Sans,sans-serif">larger</text>
+</svg>`;
 }
 
 const GENS={radicals:genRadicals,rationalize:genRationalize,ratios:genRatios,solve:genSolve,geomean:genGeoMean,scale:genScale,similar:genSimilar};
@@ -535,9 +669,13 @@ function buildCard(tid,idx,p){
   card.id=`card-${tid}-${idx}`;
   const cid=`inp-${tid}-${idx}`;
   const dotColor=difficulty==='easy'?'var(--green)':difficulty==='medium'?'var(--amber)':'var(--red)';
+  const diagramHTML = (tid==='similar' && p.svgData)
+    ? `<div style="margin:4px 0 12px;padding:10px 6px 4px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">${makeSimilarSVG(p.svgData)}<div style="display:flex;gap:14px;justify-content:center;margin-top:4px;font-size:10px;font-family:'DM Mono',monospace;"><span style="color:#4f9eff;">■ smaller △</span><span style="color:#3ecf8e;">■ larger △</span><span style="color:#ffb347;">? = find this</span></div></div>`
+    : '';
   card.innerHTML=`
     <div class="prob-meta"><span class="prob-num">${tid.toUpperCase()} · #${idx+1}</span><span class="diff-dot" style="background:${dotColor}"></span></div>
     <div class="prob-expr">${esc(p.expr)}</div>
+    ${diagramHTML}
     <div class="prob-input-row">
       <input class="prob-input" id="${cid}" placeholder="Your answer…" autocomplete="off" />
       <button class="check-btn" onclick="checkCard('${tid}',${idx})">✓</button>
